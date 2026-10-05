@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  # 1. Core Presensi Service (Laravel Utama)
+  core-presensi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5000
+    depends_on:
+      - notification-service
+
+  # 2. Notification Microservice (Node.js)
+  notification-service:
+    build:
+      context: ./notification-service
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - FONNTE_TOKEN=TOKEN_FONNTE_KAMU
