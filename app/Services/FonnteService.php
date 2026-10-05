@@ -8,7 +8,13 @@ use Illuminate\Support\Facades\Http;
 
 class FonnteService
 {
-    protected $apiUrl = 'https://api.fonnte.com';
+    protected string $notificationServiceUrl;
+
+    public function __construct()
+    {
+        // Mengambil URL Notification Service dari .env (default ke port 5000)
+        $this->notificationServiceUrl = env('NOTIFICATION_SERVICE_URL', 'http://localhost:5000');
+    }
 
     public function isEnabled(): bool
     {
@@ -22,126 +28,79 @@ class FonnteService
 
     public function getNextDevice(): ?FonnteDevice
     {
-        $device = FonnteDevice::available()
+        return FonnteDevice::available()
             ->byPriority()
             ->first();
-
-        if (!$device) {
-            return null;
-        }
-
-        return $device;
     }
 
     /**
-     * Send WhatsApp message via Fonnte with auto device selection
-     * 
-     * @param string $phoneNumber Target phone number
-     * @param string $message Message to send
-     * @param FonnteDevice|null $device Specific device to use
-     * @param int|null $kelasId Filter device by class
+     * Send WhatsApp message via Notification Microservice
      */
     public function sendMessage(string $phoneNumber, string $message, ?FonnteDevice $device = null, ?int $kelasId = null): array
     {
-        if (!$device) {
-            $device = $this->getNextDevice($kelasId);
-        }
-
-                    if (!$device) {
-            return [
-                'success' => false,
-                'message' => 'No available device. All devices are offline or in error state.'
-            ];
-        }
-
-        if ($kelasId !== null && !$device->canSendToClass($kelasId)) {
-            
-            $device = $this->getNextDevice($kelasId);
-            
-            if (!$device) {
-                return [
-                    'success' => false,
-                    'message' => 'No device available for this class'
-                ];
-            }
-        }
-
         try {
-            $delay = rand(2, 5);
-            sleep($delay);
-
             $phoneNumber = $this->normalizePhoneNumber($phoneNumber);
 
-            $data = [
-                'target' => $phoneNumber,
-                'message' => $message,
-                'countryCode' => '62',
-            ];
-
-            if (!empty($device->device_id)) {
-                $data['device'] = $device->device_id;
-            }
-
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Authorization' => $device->api_key,
-                ])
-                ->post($this->apiUrl . '/send', $data);
+            // Memanggil Notification Service (Microservice) via REST API
+            $response = Http::timeout(15)
+                ->post($this->notificationServiceUrl . '/api/send-presence-notification', [
+                    'phone' => $phoneNumber,
+                    'message' => $message,
+                ]);
 
             if ($response->successful()) {
-                $result = $response->json();
-                
-                if (isset($result['status']) && $result['status'] === true) {
-                    $device->incrementSentCount();
-                    
-                    $device->updateStatus('connected', 'Message sent successfully');
-                    
-                    return [
-                        'success' => true,
-                        'message' => 'Message sent successfully',
-                        'device_id' => $device->id,
-                        'device_name' => $device->name,
-                        'data' => $result
-                    ];
-                }
-
-                $device->updateStatus('error', $result['reason'] ?? 'Failed to send message');
-                
-                $nextDevice = $this->getNextDevice();
-                if ($nextDevice && $nextDevice->id !== $device->id) {
-                    return $this->sendMessage($phoneNumber, $message, $nextDevice);
-                }
-
                 return [
-                    'success' => false,
-                    'message' => $result['reason'] ?? 'Failed to send message'
+                    'success' => true,
+                    'message' => 'Message sent via Notification Service',
+                    'data' => $response->json()
                 ];
-            }
-
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['reason'] ?? 'HTTP Error: ' . $response->status();
-            
-            $device->updateStatus('error', $errorMessage);
-
-            $nextDevice = $this->getNextDevice();
-            if ($nextDevice && $nextDevice->id !== $device->id) {
-                return $this->sendMessage($phoneNumber, $message, $nextDevice);
             }
 
             return [
                 'success' => false,
-                'message' => $errorMessage
+                'message' => 'Failed to reach Notification Service: ' . $response->status()
             ];
 
         } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Microservice Error: ' . $e->getMessage()
+            ];
+        }
+    }
 
-            if ($device) {
-                $device->updateStatus('error', $e->getMessage());
+    /**
+     * Send Recap Absensi Notification via Notification Microservice (Tugas Dosen)
+     */
+    public function sendRecapNotification(string $phoneNumber, string $recapText, string $period = 'Harian'): array
+    {
+        try {
+            $phoneNumber = $this->normalizePhoneNumber($phoneNumber);
+
+            $response = Http::timeout(20)
+                ->post($this->notificationServiceUrl . '/api/send-recap-notification', [
+                    'phone' => $phoneNumber,
+                    'recapData' => $recapText,
+                    'period' => $period,
+                ]);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'message' => 'Recap notification sent via Notification Service',
+                    'data' => $response->json()
+                ];
             }
 
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Failed to send recap via Notification Service'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Microservice Error: ' . $e->getMessage()
             ];
         }
     }
@@ -155,79 +114,32 @@ class FonnteService
             ];
         }
 
-        if (empty($device->phone_number)) {
-            return [
-                'success' => false,
-                'message' => 'Phone number is missing'
-            ];
-        }
-
         try {
-            $targetNumber = $this->normalizePhoneNumber($device->phone_number);
+            $targetNumber = $this->normalizePhoneNumber($device->phone_number ?? '');
 
             $response = Http::timeout(10)
                 ->withHeaders([
                     'Authorization' => $device->api_key,
                 ])
-                ->post($this->apiUrl . '/validate', [
+                ->post('https://api.fonnte.com/validate', [
                     'target' => $targetNumber
                 ]);
 
             if ($response->successful()) {
                 $result = $response->json();
-                
-                if (isset($result['status']) && $result['status'] === true) {
-                    $deviceName = $result['device'] ?? $result['name'] ?? 'Unknown Device';
-                    
-                    $device->updateStatus('connected', 'Device connected successfully');
-                    
-                    return [
-                        'success' => true,
-                        'message' => 'Connection successful',
-                        'device_name' => $deviceName,
-                        'data' => $result
-                    ];
-                }
-
-                if (isset($result['reason'])) {
-                    $device->updateStatus('disconnected', $result['reason']);
-                    return [
-                        'success' => false,
-                        'message' => $result['reason']
-                    ];
-                }
-
-                if (isset($result['status']) && $result['status'] === false) {
-                    $device->updateStatus('disconnected', $result['reason'] ?? 'Validation failed');
-                    return [
-                        'success' => false,
-                        'message' => $result['reason'] ?? 'Validation failed'
-                    ];
-                }
-
-                $device->updateStatus('connected', 'API Key valid');
                 return [
                     'success' => true,
-                    'message' => 'API Key valid',
-                    'device_name' => 'Connected',
+                    'message' => 'Connection to Fonnte API valid',
                     'data' => $result
                 ];
             }
 
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['reason'] ?? 'Invalid API Key or connection failed';
-            
-            $device->updateStatus('error', $errorMessage);
-            
             return [
                 'success' => false,
-                'message' => $errorMessage
+                'message' => 'Validation failed'
             ];
 
         } catch (\Exception $e) {
-
-            $device->updateStatus('error', $e->getMessage());
-
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -242,7 +154,6 @@ class FonnteService
 
         foreach ($devices as $device) {
             $results[$device->id] = $this->testDevice($device);
-            
             sleep(1);
         }
 
@@ -251,34 +162,16 @@ class FonnteService
 
     public function sendPresensiNotification($presensi, string $type = 'checkin'): array
     {
-        if (!$this->isEnabled()) {
-            return [
-                'success' => false,
-                'message' => 'Fonnte service is not enabled',
-                'skipped' => true
-            ];
-        }
-
         try {
             $presensi->load(['siswa', 'kelas.jurusan']);
             
             $siswa = $presensi->siswa;
             $kelas = $presensi->kelas;
             
-            if (!$siswa) {
-                
+            if (!$siswa || empty($siswa->parent_phone)) {
                 return [
                     'success' => false,
-                    'message' => 'Student not found',
-                    'skipped' => true
-                ];
-            }
-            
-            if (empty($siswa->parent_phone)) {
-                
-                return [
-                    'success' => false,
-                    'message' => 'No parent phone number available',
+                    'message' => 'Student or parent phone number missing',
                     'skipped' => true
                 ];
             }
@@ -288,12 +181,10 @@ class FonnteService
                 : 'fonnte_message_template_checkout';
             
             $template = Setting::get($templateKey, $this->getDefaultTemplate($type));
-
-            $parentName = $this->getParentName($siswa->name);
             $className = $kelas ? $kelas->nama_kelas : '-';
 
             $variables = [
-                'parent_name' => $parentName,
+                'parent_name' => $this->getParentName($siswa->name),
                 'student_name' => $siswa->name,
                 'nis' => $siswa->nis ?? '-',
                 'class_name' => $className,
@@ -320,7 +211,6 @@ class FonnteService
             return $this->sendMessage($siswa->parent_phone, $message);
 
         } catch (\Exception $e) {
-
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -347,11 +237,11 @@ class FonnteService
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
         
-        if (substr($phone, 0, 1) === '0') {
+        if (str_starts_with($phone, '0')) {
             $phone = '62' . substr($phone, 1);
         }
         
-        if (substr($phone, 0, 2) !== '62') {
+        if (!str_starts_with($phone, '62')) {
             $phone = '62' . $phone;
         }
         
@@ -370,20 +260,20 @@ class FonnteService
                    "*Waktu:* {checkin_time}\n" .
                    "*Tanggal:* {date}\n\n" .
                    "Terima kasih.\n\n" .
-                   "_Sistem Presensi Sekolah_";
-        } else {
-            return "Assalamualaikum Bapak/Ibu\n\n" .
-                   "Kami informasikan bahwa:\n\n" .
-                   "*Nama:* {student_name}\n" .
-                   "*NIS:* {nis}\n" .
-                   "*Kelas:* {class_name}\n" .
-                   "*Status:* 🏠 PULANG\n" .
-                   "*Check-in:* {checkin_time}\n" .
-                   "*Check-out:* {checkout_time}\n" .
-                   "*Tanggal:* {date}\n\n" .
-                   "Terima kasih.\n\n" .
-                   "_Sistem Presensi Sekolah_";
+                   "_Sistem Presensi_";
         }
+
+        return "Assalamualaikum Bapak/Ibu\n\n" .
+               "Kami informasikan bahwa:\n\n" .
+               "*Nama:* {student_name}\n" .
+               "*NIS:* {nis}\n" .
+               "*Kelas:* {class_name}\n" .
+               "*Status:* 🏠 PULANG\n" .
+               "*Check-in:* {checkin_time}\n" .
+               "*Check-out:* {checkout_time}\n" .
+               "*Tanggal:* {date}\n\n" .
+               "Terima kasih.\n\n" .
+               "_Sistem Presensi_";
     }
 
     public function getDeviceStatistics(): array
