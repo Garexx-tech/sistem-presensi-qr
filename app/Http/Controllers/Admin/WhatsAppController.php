@@ -313,15 +313,17 @@ public function deleteDevice(Request $request, $deviceId)
         try {
             Setting::clearCache();
             
-            
             $fonnteService = new FonnteService();
             
-            if (!$fonnteService->isEnabled()) {
+            if (!$fonnteService->hasAvailableDevices()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Notifikasi WhatsApp belum diaktifkan atau tidak ada device tersedia.'
+                    'message' => 'Tidak ada device WhatsApp yang aktif atau tersedia. Silakan tambahkan dan aktifkan device terlebih dahulu.'
                 ], 400);
             }
+
+            $device = $fonnteService->getNextDevice();
+            $deviceName = $device ? $device->name : 'device';
 
             $phoneNumber = $this->normalizePhoneNumber($validated['phone_number']);
 
@@ -331,14 +333,17 @@ public function deleteDevice(Request $request, $deviceId)
             $testMessage .= "Waktu: " . now()->format('d F Y, H:i:s') . "\n\n";
             $testMessage .= "_Pesan otomatis dari Sistem Presensi_";
 
-            $result = $fonnteService->sendMessage($phoneNumber, $testMessage);
+            $result = $fonnteService->sendMessage($phoneNumber, $testMessage, $device);
 
             if ($result['success']) {
-                
+                if ($device) {
+                    $device->incrementSentCount();
+                }
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Pesan test berhasil dikirim ke ' . $phoneNumber . ' via ' . ($result['device_name'] ?? 'device'),
-                    'device_name' => $result['device_name'] ?? 'Unknown'
+                    'message' => 'Pesan test berhasil dikirim ke ' . $phoneNumber . ' via ' . $deviceName,
+                    'device_name' => $deviceName
                 ]);
             }
 

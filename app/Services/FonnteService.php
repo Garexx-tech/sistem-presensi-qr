@@ -12,8 +12,9 @@ class FonnteService
 
     public function __construct()
     {
-        // Mengambil URL Notification Service dari .env (default ke port 5000)
-        $this->notificationServiceUrl = env('NOTIFICATION_SERVICE_URL', 'http://localhost:5000');
+        // Mengambil URL Notification Service dari config/env (default ke container notification-service:5000)
+        $this->notificationServiceUrl = config('services.notification.url') 
+            ?: env('NOTIFICATION_SERVICE_URL', 'http://notification-service:5000');
     }
 
     public function isEnabled(): bool
@@ -49,10 +50,22 @@ class FonnteService
                 ]);
 
             if ($response->successful()) {
+                $responseData = $response->json();
+
+                // Periksa jika Fonnte mengembalikan response status: false (misal device disconnect/target invalid)
+                if (isset($responseData['data']['status']) && $responseData['data']['status'] === false) {
+                    $reason = $responseData['data']['reason'] ?? $responseData['data']['detail'] ?? 'Ditolak oleh Fonnte API';
+                    return [
+                        'success' => false,
+                        'message' => 'Fonnte Error: ' . $reason,
+                        'data' => $responseData
+                    ];
+                }
+
                 return [
                     'success' => true,
                     'message' => 'Message sent via Notification Service',
-                    'data' => $response->json()
+                    'data' => $responseData
                 ];
             }
 

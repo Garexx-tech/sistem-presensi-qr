@@ -138,11 +138,13 @@
             },
             body: JSON.stringify({ device_id: deviceId })
         })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errMsg = (data && data.message) ? data.message : `HTTP error! status: ${response.status}`;
+                throw new Error(errMsg);
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data.success) {
@@ -189,11 +191,13 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errMsg = (data && data.message) ? data.message : `HTTP error! status: ${response.status}`;
+                throw new Error(errMsg);
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             Swal.fire({
@@ -371,11 +375,13 @@
             },
             body: JSON.stringify({ phone_number: phoneNumber })
         })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errMsg = (data && data.message) ? data.message : `HTTP error! status: ${response.status}`;
+                throw new Error(errMsg);
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data.success) {
