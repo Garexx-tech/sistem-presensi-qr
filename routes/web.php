@@ -218,6 +218,14 @@ Route::middleware(['auth', 'user-role:guru'])->group(function() {
 Route::middleware(['auth', 'user-role:siswa'])->group(function() {
     Route::get('/siswa/home', [HomeController::class, 'siswaHome'])->name('siswa.home');
     
+    // Fitur Siswa Masuk / Pindah Kelas
+    Route::post('siswa/kelas/join', [\App\Http\Controllers\Siswa\KelasController::class, 'join'])
+        ->name('siswa.kelas.join');
+    Route::post('siswa/kelas/leave', [\App\Http\Controllers\Siswa\KelasController::class, 'leave'])
+        ->name('siswa.kelas.leave');
+    Route::get('siswa/kelas/available', [\App\Http\Controllers\Siswa\KelasController::class, 'availableClasses'])
+        ->name('siswa.kelas.available');
+
     Route::get('siswa/presensi', [\App\Http\Controllers\Siswa\PresensiController::class, 'index'])
         ->name('siswa.presensi.index');
     Route::post('siswa/presensi/validate', [\App\Http\Controllers\Siswa\PresensiController::class, 'validateQRCode'])
