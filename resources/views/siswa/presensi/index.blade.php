@@ -119,7 +119,7 @@
                         </button>
                         
                         <!-- Fallback untuk Browser HP non-HTTPS -->
-                        <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display: none;">
+                        <input type="file" id="qrFileInput" accept="image/*" style="display: none;">
                         <button type="button" class="btn btn-outline-secondary" id="scanFileBtn">
                             <i class="bi bi-camera-fill me-2"></i>Ambil Foto / Unggah Gambar QR
                         </button>
