@@ -117,6 +117,23 @@ class PresensiController extends Controller
             }
 
             $siswa = Auth::user();
+
+            if (!$siswa->kelas_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum terdaftar di kelas manapun. Silakan gabung ke kelas terlebih dahulu di Dashboard.'
+                ], 400);
+            }
+
+            if ($siswa->kelas_id !== $session->kelas_id) {
+                $namaKelasSiswa = $siswa->kelas ? $siswa->kelas->nama_kelas : '-';
+                $namaKelasQR = $session->kelas ? $session->kelas->nama_kelas : 'lain';
+                return response()->json([
+                    'success' => false,
+                    'message' => "QR Code ini khusus untuk {$namaKelasQR}, bukan untuk kelas Anda ({$namaKelasSiswa})."
+                ], 403);
+            }
+
             $existingPresensi = Presensi::where('siswa_id', $siswa->id)
                 ->where('kelas_id', $session->kelas_id)
                 ->whereDate('tanggal_presensi', $sessionDate)
