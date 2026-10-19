@@ -7,7 +7,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\JurusanController;
 use App\Http\Controllers\Admin\KelasController;
-use App\Http\Controllers\Siswa\PresensiController;
+use App\Http\Controllers\Admin\PresensiController as AdminPresensiController;
+use App\Http\Controllers\Siswa\PresensiController as SiswaPresensiController;
 use App\Http\Controllers\Admin\SettingsController;
 
 Route::get('/', function () {
@@ -27,11 +28,11 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/home', function() {
         $role = auth()->user()->role;
         
-        if ($role == 'admin') {
+        if ($role == 3 || $role == 'admin') {
             return redirect()->route('admin.home');
-        } elseif ($role == 'guru') {
+        } elseif ($role == 2 || $role == 'guru') {
             return redirect()->route('guru.home');
-        } elseif ($role == 'siswa') {
+        } elseif ($role == 1 || $role == 'siswa') {
             return redirect()->route('siswa.home');
         }
         
@@ -45,27 +46,9 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
     
     Route::get('/admin/chart-data', [HomeController::class, 'getChartDataAjax'])->name('admin.chart-data');
 
-    Route::get('/admin/deteksi-dini', function () {
-    try {
-        $siswaBerisiko = \App\Models\User::where('role', 'siswa')
-            ->withCount([
-                'presensis as total_alpha' => function ($query) {
-                    $query->where('status', 'alpha');
-                },
-                'presensis as total_terlambat' => function ($query) {
-                    $query->where('status', 'terlambat');
-                }
-            ])
-            ->get()
-            ->filter(function ($siswa) {
-                return $siswa->total_alpha >= 1 || $siswa->total_terlambat >= 1;
-            });
-    } catch (\Exception $e) {
-        $siswaBerisiko = collect([]);
-    }
+    // Route Deteksi Dini yang mengarah ke AdminPresensiController
+    Route::get('/admin/deteksi-dini', [AdminPresensiController::class, 'deteksiDini'])->name('admin.deteksi_dini');
 
-    return view('admin.deteksi_dini', compact('siswaBerisiko'));
-})->name('admin.deteksi_dini');
     Route::post('admin/users/bulk-delete', [UserController::class, 'bulkDeleteByRole'])
         ->name('admin.users.bulk-delete');
     Route::resource('admin/users', UserController::class)->names([
@@ -128,19 +111,19 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
     Route::delete('admin/qrcode/{qrcode}', [App\Http\Controllers\Admin\QRCodeController::class, 'destroy'])
         ->name('admin.qrcode.destroy');
 
-    Route::get('admin/presensi', [App\Http\Controllers\Admin\PresensiController::class, 'index'])
+    Route::get('admin/presensi', [AdminPresensiController::class, 'index'])
         ->name('admin.presensi.index');
-    Route::get('admin/presensi/kelas/{kelas}', [App\Http\Controllers\Admin\PresensiController::class, 'showKelas'])
+    Route::get('admin/presensi/kelas/{kelas}', [AdminPresensiController::class, 'showKelas'])
         ->name('admin.presensi.kelas');
-    Route::post('admin/presensi/kelas/{kelas}/manual', [App\Http\Controllers\Admin\PresensiController::class, 'storeManual'])
+    Route::post('admin/presensi/kelas/{kelas}/manual', [AdminPresensiController::class, 'storeManual'])
         ->name('admin.presensi.kelas.manual');
-    Route::get('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'show'])
+    Route::get('admin/presensi/{presensi}', [AdminPresensiController::class, 'show'])
         ->name('admin.presensi.show');
-    Route::get('admin/presensi/{presensi}/edit', [App\Http\Controllers\Admin\PresensiController::class, 'edit'])
+    Route::get('admin/presensi/{presensi}/edit', [AdminPresensiController::class, 'edit'])
         ->name('admin.presensi.edit');
-    Route::put('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'update'])
+    Route::put('admin/presensi/{presensi}', [AdminPresensiController::class, 'update'])
         ->name('admin.presensi.update');
-    Route::delete('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'destroy'])
+    Route::delete('admin/presensi/{presensi}', [AdminPresensiController::class, 'destroy'])
         ->name('admin.presensi.destroy');
 
     Route::get('admin/export-import', [App\Http\Controllers\Admin\ExportImportController::class, 'index'])
@@ -240,16 +223,16 @@ Route::middleware(['auth', 'user-role:guru'])->group(function() {
 Route::middleware(['auth', 'user-role:siswa'])->group(function() {
     Route::get('/siswa/home', [HomeController::class, 'siswaHome'])->name('siswa.home');
     
-    Route::get('siswa/presensi', [\App\Http\Controllers\Siswa\PresensiController::class, 'index'])
+    Route::get('siswa/presensi', [SiswaPresensiController::class, 'index'])
         ->name('siswa.presensi.index');
-    Route::post('siswa/presensi/validate', [\App\Http\Controllers\Siswa\PresensiController::class, 'validateQRCode'])
+    Route::post('siswa/presensi/validate', [SiswaPresensiController::class, 'validateQRCode'])
         ->name('siswa.presensi.validate');
-    Route::post('siswa/presensi/submit', [\App\Http\Controllers\Siswa\PresensiController::class, 'submitPresensi'])
+    Route::post('siswa/presensi/submit', [SiswaPresensiController::class, 'submitPresensi'])
         ->name('siswa.presensi.submit');
 });
 
 Route::get('siswa/presensi/scan/{code}', function($code) {
-    if (Auth::check() && Auth::user()->role == 'siswa') {
+    if (Auth::check() && (Auth::user()->role == 'siswa' || Auth::user()->role == 1)) {
         return redirect()->route('siswa.presensi.index')
             ->with('qr_code', $code);
     }
