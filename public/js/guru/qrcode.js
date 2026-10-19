@@ -5,13 +5,14 @@ let markerCheckout;
 let circleCheckout;
 let csrfToken;
 let baseRoute;
+let qrPollingInterval = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     const tokenInput = document.querySelector('input[name="_token"]');
     csrfToken = tokenInput ? tokenInput.value : '';
     
     const baseRouteInput = document.getElementById('baseRoute');
-    baseRoute = baseRouteInput ? baseRouteInput.value : 'admin';
+    baseRoute = baseRouteInput ? baseRouteInput.value : 'guru';
 
     initializeModalEvents();
     initializeMapEvents();
@@ -37,6 +38,16 @@ function initializeModalEvents() {
         
         createQRModal.addEventListener('hidden.bs.modal', function() {
             resetCreateForm();
+        });
+    }
+
+    const showQRModal = document.getElementById('showQRModal');
+    if (showQRModal) {
+        showQRModal.addEventListener('hidden.bs.modal', function() {
+            if (qrPollingInterval) {
+                clearInterval(qrPollingInterval);
+                qrPollingInterval = null;
+            }
         });
     }
 }
@@ -337,6 +348,12 @@ function showQRCodeDetail(sessionId) {
     const modal = new bootstrap.Modal(document.getElementById('showQRModal'));
     const content = document.getElementById('showQRContent');
     
+    // Hentikan interval sebelumnya jika ada
+    if (qrPollingInterval) {
+        clearInterval(qrPollingInterval);
+        qrPollingInterval = null;
+    }
+
     content.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
@@ -372,6 +389,11 @@ function showQRCodeDetail(sessionId) {
     .then(data => {
         if (data.success) {
             renderQRDetail(data, content, sessionId);
+
+            // Mulai Auto Live Sync Polling setiap 3 detik selama modal terbuka
+            qrPollingInterval = setInterval(() => {
+                updateLiveQRData(sessionId);
+            }, 3000);
         } else {
             throw new Error(data.message || 'Gagal memuat data');
         }
@@ -541,28 +563,9 @@ function deleteQRCode(form, qrName) {
     });
 }
 
-function renderQRDetail(data, container, sessionId) {
-    const session = data.session;
-    
-    let statusBadge = '';
-    if (session.status === 'active') {
-        statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Aktif</span>';
-    } else {
-        statusBadge = '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Expired</span>';
-    }
-
-    let phaseBadge = '';
-    if (session.current_phase === 'checkin') {
-        phaseBadge = '<span class="badge bg-primary"><i class="bi bi-box-arrow-in-right me-1"></i>Fase Check-In</span>';
-    } else if (session.current_phase === 'checkout') {
-        phaseBadge = '<span class="badge bg-primary"><i class="bi bi-box-arrow-right me-1"></i>Fase Check-Out</span>';
-    } else {
-        phaseBadge = '<span class="badge bg-secondary"><i class="bi bi-clock me-1"></i>Belum Dimulai / Selesai</span>';
-    }
-
-    let siswaListHtml = '';
-    if (session.presensis && session.presensis.length > 0) {
-        siswaListHtml = session.presensis.map((presensi, index) => {
+function generateSiswaHadirHtml(presensis) {
+    if (presensis && presensis.length > 0) {
+        return presensis.map((presensi, index) => {
             let statusIcon = '';
             let statusBadgeClass = '';
             let statusText = '';
@@ -584,11 +587,11 @@ function renderQRDetail(data, container, sessionId) {
                             <span class="fw-bold text-muted">${index + 1}</span>
                         </div>
                         <div>
-                            <h6 class="mb-1 fw-semibold">${presensi.siswa.name}</h6>
+                            <h6 class="mb-1 fw-semibold text-dark">${presensi.siswa.name}</h6>
                             <div class="d-flex gap-3 small text-muted">
-                                <span><i class="bi bi-person-badge me-1"></i>NIS: ${presensi.siswa.nis}</span>
-                                ${presensi.waktu_checkin ? `<span><i class="bi bi-box-arrow-in-right me-1"></i>${presensi.waktu_checkin}</span>` : ''}
-                                ${presensi.waktu_checkout ? `<span><i class="bi bi-box-arrow-right me-1"></i>${presensi.waktu_checkout}</span>` : ''}
+                                <span><i class="bi bi-person-badge me-1"></i>NIS: ${presensi.siswa.nis ?? '-'}</span>
+                                ${presensi.waktu_checkin ? `<span><i class="bi bi-box-arrow-in-right text-success me-1"></i>${presensi.waktu_checkin}</span>` : ''}
+                                ${presensi.waktu_checkout ? `<span><i class="bi bi-box-arrow-right text-warning me-1"></i>${presensi.waktu_checkout}</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -599,27 +602,26 @@ function renderQRDetail(data, container, sessionId) {
             `;
         }).join('');
     } else {
-        siswaListHtml = `
-            <div class="alert alert-light border mb-0 d-flex align-items-center">
+        return `
+            <div class="alert alert-light border mb-0 d-flex align-items-center p-3">
                 <i class="bi bi-info-circle text-muted fs-4 me-3"></i>
-                <span>Belum ada siswa yang melakukan presensi</span>
+                <span class="text-muted">Belum ada siswa yang melakukan presensi</span>
             </div>
         `;
     }
+}
 
-    let belumPresensiHtml = '';
-    if (session.siswa_belum_presensi && session.siswa_belum_presensi.length > 0) {
-        belumPresensiHtml = session.siswa_belum_presensi.map((siswa, index) => `
+function generateSiswaBelumHtml(siswaBelumPresensi) {
+    if (siswaBelumPresensi && siswaBelumPresensi.length > 0) {
+        return siswaBelumPresensi.map((siswa, index) => `
             <div class="d-flex justify-content-between align-items-center py-3 px-4 border-bottom hover-bg-light">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                         <span class="fw-bold text-muted">${index + 1}</span>
                     </div>
                     <div>
-                        <h6 class="mb-1 fw-semibold">${siswa.name}</h6>
-                        <small class="text-muted">
-                            ${siswa.nis}
-                        </small>
+                        <h6 class="mb-1 fw-semibold text-dark">${siswa.name}</h6>
+                        <small class="text-muted">NIS: ${siswa.nis ?? '-'}</small>
                     </div>
                 </div>
                 <span class="badge bg-secondary">
@@ -628,13 +630,97 @@ function renderQRDetail(data, container, sessionId) {
             </div>
         `).join('');
     } else {
-        belumPresensiHtml = `
-            <div class="alert alert-light border mb-0 d-flex align-items-center">
+        return `
+            <div class="alert alert-light border mb-0 d-flex align-items-center p-3">
                 <i class="bi bi-check-circle text-success fs-4 me-3"></i>
-                <span>Semua siswa sudah melakukan presensi</span>
+                <span class="text-success fw-semibold">Semua siswa sudah melakukan presensi</span>
             </div>
         `;
     }
+}
+
+function updateLiveQRData(sessionId) {
+    const showModal = document.getElementById('showQRModal');
+    if (!showModal || !showModal.classList.contains('show')) {
+        if (qrPollingInterval) {
+            clearInterval(qrPollingInterval);
+            qrPollingInterval = null;
+        }
+        return;
+    }
+
+    const baseUrl = `/${baseRoute}/qrcode/`;
+    fetch(`${baseUrl}${sessionId}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.session) {
+            const session = data.session;
+            
+            const checkinEl = document.getElementById('stat-checkin-count');
+            const checkoutEl = document.getElementById('stat-checkout-count');
+            const belumEl = document.getElementById('stat-belum-count');
+            const hadirTabBadge = document.getElementById('hadir-tab-badge');
+            const belumTabBadge = document.getElementById('belum-tab-badge');
+            const hadirContainer = document.getElementById('hadir-list-container');
+            const belumContainer = document.getElementById('belum-list-container');
+            const syncPulse = document.getElementById('live-indicator-badge');
+
+            if (checkinEl) checkinEl.textContent = session.stats.checkin;
+            if (checkoutEl) checkoutEl.textContent = session.stats.checkout;
+            if (belumEl) belumEl.textContent = session.stats.belum;
+            if (hadirTabBadge) hadirTabBadge.textContent = session.stats.checkin + session.stats.checkout;
+            if (belumTabBadge) belumTabBadge.textContent = session.stats.belum;
+
+            if (hadirContainer) {
+                hadirContainer.innerHTML = generateSiswaHadirHtml(session.presensis);
+            }
+            if (belumContainer) {
+                belumContainer.innerHTML = generateSiswaBelumHtml(session.siswa_belum_presensi);
+            }
+
+            if (syncPulse) {
+                syncPulse.classList.add('bg-success', 'text-white');
+                syncPulse.classList.remove('bg-opacity-10', 'text-success');
+                setTimeout(() => {
+                    syncPulse.classList.remove('bg-success', 'text-white');
+                    syncPulse.classList.add('bg-opacity-10', 'text-success');
+                }, 400);
+            }
+        }
+    })
+    .catch(err => {
+        console.warn('Live sync notice:', err);
+    });
+}
+
+function renderQRDetail(data, container, sessionId) {
+    const session = data.session;
+    
+    let statusBadge = '';
+    if (session.status === 'active') {
+        statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Aktif</span>';
+    } else {
+        statusBadge = '<span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Expired</span>';
+    }
+
+    let phaseBadge = '';
+    if (session.current_phase === 'checkin') {
+        phaseBadge = '<span class="badge bg-primary"><i class="bi bi-box-arrow-in-right me-1"></i>Fase Check-In</span>';
+    } else if (session.current_phase === 'checkout') {
+        phaseBadge = '<span class="badge bg-primary"><i class="bi bi-box-arrow-right me-1"></i>Fase Check-Out</span>';
+    } else {
+        phaseBadge = '<span class="badge bg-secondary"><i class="bi bi-clock me-1"></i>Belum Dimulai / Selesai</span>';
+    }
+
+    let siswaListHtml = generateSiswaHadirHtml(session.presensis);
+    let belumPresensiHtml = generateSiswaBelumHtml(session.siswa_belum_presensi);
 
     container.innerHTML = `
         <!-- Informasi Sesi -->
@@ -647,7 +733,11 @@ function renderQRDetail(data, container, sessionId) {
                             <i class="bi bi-mortarboard me-2"></i>${session.kelas.jurusan.nama_jurusan}
                         </p>
                     </div>
-                    <div class="d-flex gap-2 flex-wrap">
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-2" id="live-indicator-badge">
+                            <span class="spinner-grow spinner-grow-sm me-1 text-success" role="status" style="width: 8px; height: 8px;"></span>
+                            Live Sync Otomatis
+                        </span>
                         ${statusBadge}
                         ${phaseBadge}
                     </div>
@@ -737,7 +827,7 @@ function renderQRDetail(data, container, sessionId) {
                 <div class="card border text-center">
                     <div class="card-body p-4">
                         <i class="bi bi-box-arrow-in-right text-success fs-1 mb-3"></i>
-                        <h2 class="mb-1 fw-bold">${session.stats.checkin}</h2>
+                        <h2 class="mb-1 fw-bold text-success" id="stat-checkin-count">${session.stats.checkin}</h2>
                         <p class="mb-0 text-muted">Sudah Check-In</p>
                     </div>
                 </div>
@@ -746,7 +836,7 @@ function renderQRDetail(data, container, sessionId) {
                 <div class="card border text-center">
                     <div class="card-body p-4">
                         <i class="bi bi-box-arrow-right text-warning fs-1 mb-3"></i>
-                        <h2 class="mb-1 fw-bold">${session.stats.checkout}</h2>
+                        <h2 class="mb-1 fw-bold text-warning" id="stat-checkout-count">${session.stats.checkout}</h2>
                         <p class="mb-0 text-muted">Sudah Check-Out</p>
                     </div>
                 </div>
@@ -755,7 +845,7 @@ function renderQRDetail(data, container, sessionId) {
                 <div class="card border text-center">
                     <div class="card-body p-4">
                         <i class="bi bi-x-circle-fill text-secondary fs-1 mb-3"></i>
-                        <h2 class="mb-1 fw-bold">${session.stats.belum}</h2>
+                        <h2 class="mb-1 fw-bold text-secondary" id="stat-belum-count">${session.stats.belum}</h2>
                         <p class="mb-0 text-muted">Belum Presensi</p>
                     </div>
                 </div>
@@ -773,7 +863,7 @@ function renderQRDetail(data, container, sessionId) {
                                 data-bs-target="#hadir" 
                                 type="button">
                             <i class="bi bi-check-circle me-2"></i>
-                            Sudah Presensi <span class="badge bg-success ms-2">${session.stats.checkin + session.stats.checkout}</span>
+                            Sudah Presensi <span class="badge bg-success ms-2" id="hadir-tab-badge">${session.stats.checkin + session.stats.checkout}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -783,7 +873,7 @@ function renderQRDetail(data, container, sessionId) {
                                 data-bs-target="#belum" 
                                 type="button">
                             <i class="bi bi-x-circle me-2"></i>
-                            Belum Presensi <span class="badge bg-secondary ms-2">${session.stats.belum}</span>
+                            Belum Presensi <span class="badge bg-secondary ms-2" id="belum-tab-badge">${session.stats.belum}</span>
                         </button>
                     </li>
                 </ul>
@@ -791,12 +881,12 @@ function renderQRDetail(data, container, sessionId) {
             <div class="card-body p-0">
                 <div class="tab-content" id="siswaTabContent">
                     <div class="tab-pane fade show active" id="hadir" role="tabpanel">
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div id="hadir-list-container" style="max-height: 400px; overflow-y: auto;">
                             ${siswaListHtml}
                         </div>
                     </div>
                     <div class="tab-pane fade" id="belum" role="tabpanel">
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div id="belum-list-container" style="max-height: 400px; overflow-y: auto;">
                             ${belumPresensiHtml}
                         </div>
                     </div>
