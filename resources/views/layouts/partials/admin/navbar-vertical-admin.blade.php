@@ -71,6 +71,13 @@
                     Manajemen Absensi
                 </a>
             </li>
+            
+            <li class="nav-item">
+    <a href="{{ route('admin.deteksi_dini') }}" class="nav-link {{ request()->routeIs('admin.deteksi_dini') ? 'active' : '' }}">
+        <i class="bi bi-exclamation-triangle-fill nav-icon text-warning me-2"></i>
+        <span>Deteksi Dini</span>
+    </a>
+</li>
 
             <li class="nav-item">
                 <div class="navbar-heading">Absensi</div>

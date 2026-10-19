@@ -30,7 +30,7 @@ class PresensiController extends Controller
         $today = now()->format('Y-m-d');
         $stats = [
             'total_kelas' => $kelasList->count(),
-            'total_siswa' => User::where('role', 2)->count(),
+            'total_siswa' => User::where('role', 3)->count(), // Role 3 untuk siswa
             'hadir_hari_ini' => Presensi::whereDate('tanggal_presensi', $today)
                 ->whereNotNull('waktu_checkin') 
                 ->count(),
@@ -40,6 +40,32 @@ class PresensiController extends Controller
         ];
 
         return view('admin.presensi.index', compact('kelasList', 'jurusans', 'stats'));
+    }
+
+    public function deteksiDini()
+    {
+        // Ambil data siswa beserta hitungan Alpha & Terlambat langsung dari DB
+        $siswaBermasalah = User::where('role', 3)
+            ->with(['kelas'])
+            ->withCount([
+                'presensis as total_alpha' => function ($query) {
+                    $query->where('status', 'alpha');
+                },
+                'presensis as total_terlambat' => function ($query) {
+                    $query->where('status', 'terlambat');
+                }
+            ])
+            ->having('total_alpha', '>', 0)
+            ->orHaving('total_terlambat', '>', 0)
+            ->get();
+
+        $stats = [
+            'kritis' => $siswaBermasalah->where('total_alpha', '>=', 3)->count(),
+            'peringatan' => $siswaBermasalah->where('total_terlambat', '>=', 5)->count(),
+            'wa_terkirim' => \App\Models\WaMessageLog::where('status', 'sent')->count() ?? 0,
+        ];
+
+        return view('admin.deteksi_dini', compact('siswaBermasalah', 'stats'));
     }
 
     public function showKelas(Request $request, Kelas $kelas)
@@ -133,7 +159,6 @@ class PresensiController extends Controller
 
     public function storeManual(Request $request, Kelas $kelas)
     {
-
         $validated = $request->validate([
             'siswa_id' => 'required|exists:users,id',
             'tanggal_presensi' => 'required|date',
@@ -144,7 +169,6 @@ class PresensiController extends Controller
         $siswa = User::findOrFail($validated['siswa_id']);
         
         if ($siswa->kelas_id != $kelas->id) {
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Siswa tidak terdaftar di kelas ini'
@@ -157,7 +181,6 @@ class PresensiController extends Controller
             ->exists();
 
         if ($exists) {
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Siswa sudah melakukan presensi pada tanggal ini'
@@ -179,7 +202,6 @@ class PresensiController extends Controller
             'is_valid_location_checkin' => true,
             'is_valid_location_checkout' => true,
         ]);
-
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -214,14 +236,13 @@ class PresensiController extends Controller
                 throw new \Exception('Data kelas tidak ditemukan');
             }
             
-            
             if (request()->wantsJson() || request()->ajax()) {
                 return response()->json([
                     'success' => true,
                     'presensi' => [
                         'id' => $presensi->id,
                         'status' => $presensi->status,
-                        'keterangan' => $presensi->keterangan_checkin ?? $presensi->keterangan_checkout ?? '', // FIXED
+                        'keterangan' => $presensi->keterangan_checkin ?? $presensi->keterangan_checkout ?? '',
                         'siswa' => [
                             'name' => $presensi->siswa->name,
                         ],
@@ -231,7 +252,6 @@ class PresensiController extends Controller
             
             return view('admin.presensi.edit', compact('presensi'));
         } catch (\Exception $e) {
-            
             if (request()->wantsJson() || request()->ajax()) {
                 return response()->json([
                     'success' => false,

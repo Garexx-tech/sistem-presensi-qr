@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->belongsTo(Kelas::class, 'kelas_id');
     }
 
+    public function presensis()
+    {
+        return $this->hasMany(Presensi::class, 'siswa_id');
+    }
+
     public function getRawOriginal($key = null, $default = null)
     {
         if ($key === 'role') {
