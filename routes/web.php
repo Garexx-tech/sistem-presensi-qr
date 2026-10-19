@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\JurusanController;
@@ -44,6 +45,27 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
     
     Route::get('/admin/chart-data', [HomeController::class, 'getChartDataAjax'])->name('admin.chart-data');
 
+    Route::get('/admin/deteksi-dini', function () {
+    try {
+        $siswaBerisiko = \App\Models\User::where('role', 'siswa')
+            ->withCount([
+                'presensis as total_alpha' => function ($query) {
+                    $query->where('status', 'alpha');
+                },
+                'presensis as total_terlambat' => function ($query) {
+                    $query->where('status', 'terlambat');
+                }
+            ])
+            ->get()
+            ->filter(function ($siswa) {
+                return $siswa->total_alpha >= 1 || $siswa->total_terlambat >= 1;
+            });
+    } catch (\Exception $e) {
+        $siswaBerisiko = collect([]);
+    }
+
+    return view('admin.deteksi_dini', compact('siswaBerisiko'));
+})->name('admin.deteksi_dini');
     Route::post('admin/users/bulk-delete', [UserController::class, 'bulkDeleteByRole'])
         ->name('admin.users.bulk-delete');
     Route::resource('admin/users', UserController::class)->names([
