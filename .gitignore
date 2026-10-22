@@ -18,3 +18,8 @@ yarn-error.log
 /.idea
 /.vscode
 **/node_modules/
+# Python venv
+sistem-presensi-qr-main/face-recognition-service/venv/
+**/venv/
+**/__pycache__/
+*.pyc
