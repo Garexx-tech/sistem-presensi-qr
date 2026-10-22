@@ -1,3 +1,4 @@
+# Laravel Core
 /.phpunit.cache
 /node_modules
 /public/build
@@ -14,12 +15,17 @@ Homestead.yaml
 auth.json
 npm-debug.log
 yarn-error.log
+
+# Microservices & Nested Dependencies
+**/node_modules
+/notification-service/node_modules
+
+# IDE & Editor Files
 /.fleet
 /.idea
 /.vscode
-**/node_modules/
-# Python venv
-sistem-presensi-qr-main/face-recognition-service/venv/
-**/venv/
-**/__pycache__/
-*.pyc
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

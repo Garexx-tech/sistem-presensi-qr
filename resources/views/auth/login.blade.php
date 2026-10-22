@@ -77,10 +77,6 @@
                                 </button>
                             </div>
                         </form>
-
-                        <p class="text-center mt-4 mb-0">
-                            Belum punya akun siswa? <a href="{{ route('register') }}">Buat akun</a>
-                        </p>
                     </div>
                 </div>
                 <!-- End Card -->

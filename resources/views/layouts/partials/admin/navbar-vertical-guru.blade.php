@@ -1,4 +1,4 @@
- <!-- Sidebar -->
+﻿ <!-- Sidebar -->
 <nav class="navbar-vertical navbar">
     <div class="nav-scroller">
         <!-- Brand logo -->
@@ -37,7 +37,7 @@
                 <a class="nav-link has-arrow " href="{{ route('guru.qrcode.index') }}"
                     aria-controls="navPages">
                     <i data-feather="QR code" class="bi bi-qr-code icon-xs me-2">
-                    </i> Generate QR Code
+                    </i> Buat Sesi Presensi
                 </a>
 
             <li class="nav-item">

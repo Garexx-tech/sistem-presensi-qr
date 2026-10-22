@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.4-fpm
 
 # Install system dependencies (termasuk libfreetype6-dev dan libjpeg62-turbo-dev)
 RUN apt-get update && apt-get install -y \

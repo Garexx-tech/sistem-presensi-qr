@@ -1,4 +1,4 @@
-<!-- Sidebar -->
+﻿<!-- Sidebar -->
 <nav class="navbar-vertical navbar">
     <div class="nav-scroller">
         <!-- Brand logo -->
@@ -71,13 +71,6 @@
                     Manajemen Absensi
                 </a>
             </li>
-            
-            <li class="nav-item">
-    <a href="{{ route('admin.deteksi_dini') }}" class="nav-link {{ request()->routeIs('admin.deteksi_dini') ? 'active' : '' }}">
-        <i class="bi bi-exclamation-triangle-fill nav-icon text-warning me-2"></i>
-        <span>Deteksi Dini</span>
-    </a>
-</li>
 
             <li class="nav-item">
                 <div class="navbar-heading">Absensi</div>
@@ -86,7 +79,7 @@
             <li class="nav-item">
                 <a class="nav-link" href="{{ route('admin.qrcode.index') }}">
                     <i data-feather="QR code" class="bi bi-qr-code icon-xs me-2"></i>
-                    Generate QR Code
+                    Buat Sesi Presensi
                 </a>
             </li>
             

@@ -117,12 +117,6 @@
                         <button type="button" class="btn btn-danger btn-lg" id="stopScanBtn" style="display: none;">
                             <i class="bi bi-stop-circle me-2"></i>Hentikan Scan
                         </button>
-                        
-                        <!-- Fallback untuk Browser HP non-HTTPS -->
-                        <input type="file" id="qrFileInput" accept="image/*" style="display: none;">
-                        <button type="button" class="btn btn-outline-secondary" id="scanFileBtn">
-                            <i class="bi bi-camera-fill me-2"></i>Ambil Foto / Unggah Gambar QR
-                        </button>
                     </div>
                 </div>
             </div>
@@ -326,8 +320,6 @@
     function init() {
         const startBtn = document.getElementById('startScanBtn');
         const stopBtn = document.getElementById('stopScanBtn');
-        const scanFileBtn = document.getElementById('scanFileBtn');
-        const qrFileInput = document.getElementById('qrFileInput');
         
         if (startBtn) {
             startBtn.addEventListener('click', function() {
@@ -339,31 +331,6 @@
         if (stopBtn) {
             stopBtn.addEventListener('click', function() {
                 stopScanning();
-            });
-        }
-
-        if (scanFileBtn && qrFileInput) {
-            scanFileBtn.addEventListener('click', function() {
-                qrFileInput.click();
-            });
-
-            qrFileInput.addEventListener('change', function(e) {
-                if (!e.target.files || e.target.files.length === 0) return;
-                const file = e.target.files[0];
-
-                showLoading('Memindai QR Code dari gambar...');
-
-                if (!scanner) {
-                    scanner = new Html5Qrcode("reader");
-                }
-
-                scanner.scanFile(file, true)
-                    .then(decodedText => {
-                        onScanSuccess(decodedText);
-                    })
-                    .catch(err => {
-                        showAlert('error', 'QR Code Tidak Terdeteksi', 'Pastikan foto QR Code terlihat jelas, fokus, dan tidak terpotong.');
-                    });
             });
         }
     }
@@ -397,34 +364,7 @@
         }).catch(err => {
             startBtn.disabled = false;
             startBtn.innerHTML = '<i class="bi bi-camera me-2"></i>Mulai Scan';
-
-            const isNonSecure = !window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
-            if (isNonSecure) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Kamera Dibatasi Browser',
-                    html: `
-                        <p class="text-muted small mb-3">
-                            Browser di HP memblokir kamera langsung karena web diakses via <strong>HTTP (IP Address)</strong>, bukan <strong>HTTPS</strong>.
-                        </p>
-                        <div class="alert alert-info text-start small mb-2">
-                            <strong>Solusi Mudah:</strong><br>
-                            Gunakan tombol <strong>"Ambil Foto / Unggah Gambar QR"</strong> untuk memotret QR Code langsung dari kamera bawaan HP Anda.
-                        </div>
-                    `,
-                    confirmButtonColor: '#0d6efd',
-                    confirmButtonText: 'Gunakan Foto QR',
-                    showCancelButton: true,
-                    cancelButtonText: 'Tutup'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const scanBtn = document.getElementById('scanFileBtn');
-                        if (scanBtn) scanBtn.click();
-                    }
-                });
-            } else {
-                showAlert('error', 'Gagal Memulai Kamera', err.message || 'Pastikan izin kamera telah diberikan di browser Anda.');
-            }
+            showAlert('error', 'Gagal Memulai Kamera', err.message);
         });
     }
     

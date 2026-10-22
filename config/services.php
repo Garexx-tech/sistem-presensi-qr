@@ -35,4 +35,8 @@ return [
         'url' => env('NOTIFICATION_SERVICE_URL', 'http://notification-service:5000'),
     ],
 
+        'face_recognition' => [
+        'url' => env('FACE_RECOGNITION_SERVICE_URL', 'http://face-recognition-service:8001'),
+    ],
+
 ];

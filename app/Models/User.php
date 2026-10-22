@@ -20,6 +20,7 @@ class User extends Authenticatable
         'role',
         'kelas_id',
         'parent_phone',
+        'foto_wajah',
         'status',
     ];
 
@@ -43,11 +44,6 @@ class User extends Authenticatable
     public function kelas()
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');
-    }
-
-    public function presensis()
-    {
-        return $this->hasMany(Presensi::class, 'siswa_id');
     }
 
     public function getRawOriginal($key = null, $default = null)

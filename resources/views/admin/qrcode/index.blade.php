@@ -1,5 +1,5 @@
-@extends('layouts.admin')
-@section('title', 'Generate QR Code')
+﻿@extends('layouts.admin')
+@section('title', 'Buat Sesi Presensi')
 
 @section('content')
 @if(session('success'))
@@ -18,12 +18,12 @@
         <div class="col-lg-12 col-md-12 col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="mb-2 mb-lg-0">
-                    <h3 class="mb-0 text-white">Generate QR Code</h3>
-                    <p class="text-white-50 mb-0">Kelola QR Code untuk absensi siswa</p>
+                    <h3 class="mb-0 text-white">Buat Sesi Presensi</h3>
+                    <p class="text-white-50 mb-0">Kelola sesi presensi untuk absensi siswa</p>
                 </div>
                 <div>
                     <button type="button" class="btn btn-white" data-bs-toggle="modal" data-bs-target="#createQRModal">
-                        <i class="bi bi-qr-code me-2"></i>Generate QR Code
+                        <i class="bi bi-calendar-plus me-2"></i>Buat Sesi Presensi
                     </button>
                 </div>
             </div>
@@ -39,7 +39,7 @@
                 <div class="collapse" id="advancedFilter">
                     <div class="card-header bg-white border-bottom">
                         <h5 class="mb-3">
-                            <i class="bi bi-funnel me-2"></i>Filter QR Code
+                            <i class="bi bi-funnel me-2"></i>Filter Sesi Presensi
                         </h5>
                         <form action="{{ route('admin.qrcode.index') }}" method="GET">
                             <div class="row g-3">
@@ -83,7 +83,7 @@
                 <div class="card-header bg-white border-bottom rounded-top">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                         <div>
-                            <h4 class="mb-0">Daftar QR Code</h4>
+                            <h4 class="mb-0">Daftar Sesi Presensi</h4>
                         </div>
                         
                         <div class="d-flex gap-2 flex-wrap">
@@ -231,9 +231,9 @@
                             <i class="bi bi-inbox fs-1 text-muted"></i>
                             <p class="text-muted mt-3 mb-0">
                                 @if(request()->hasAny(['kelas_id', 'tanggal', 'status']))
-                                    Tidak ada QR Code yang sesuai dengan filter
+                                    Tidak ada sesi presensi yang sesuai dengan filter
                                 @else
-                                    Belum ada QR Code yang dibuat
+                                    Belum ada sesi presensi yang dibuat
                                 @endif
                             </p>
                         </div>
@@ -365,9 +365,9 @@
             <i class="bi bi-inbox fs-1 d-block mb-3"></i>
             <p class="mb-0">
                 @if(request()->hasAny(['kelas_id', 'tanggal', 'status']))
-                    Tidak ada QR Code yang sesuai dengan filter
+                    Tidak ada sesi presensi yang sesuai dengan filter
                 @else
-                    Belum ada QR Code yang dibuat
+                    Belum ada sesi presensi yang dibuat
                 @endif
             </p>
         </div>
@@ -392,13 +392,13 @@
     </div>
 </div>
 
-<!-- Modal Create QR Code -->
+<!-- Modal Create Sesi Presensi -->
 <div class="modal fade" id="createQRModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-qr-code me-2"></i>Buat QR Code Baru
+                    <i class="bi bi-calendar-plus me-2"></i>Buat Sesi Presensi Baru
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -407,7 +407,7 @@
                 <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
                     <div class="alert alert-warning mb-4">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        <strong>Perhatian!</strong> Jika kelas sudah memiliki QR Code aktif, QR Code lama akan otomatis terhapus.
+                        <strong>Perhatian!</strong> Jika kelas sudah memiliki sesi presensi aktif, sesi lama akan otomatis terhapus.
                     </div>
                     
                     <div class="row g-4">
@@ -600,7 +600,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>Generate QR Code
+                        <i class="bi bi-check-circle me-2"></i>Simpan Sesi
                     </button>
                 </div>
             </form>
@@ -608,13 +608,13 @@
     </div>
 </div>
 
-<!-- Modal Show QR Code -->
+<!-- Modal Show Sesi Presensi -->
 <div class="modal fade" id="showQRModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-qr-code me-2"></i>Detail QR Code
+                    <i class="bi bi-calendar-check me-2"></i>Detail Sesi Presensi
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>

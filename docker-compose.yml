@@ -1,93 +1,46 @@
+version: '3.8'
+
 services:
-  # 1. Aplikasi Utama Laravel (SIPENA Core)
-  app:
-    build: .
-    container_name: sipena_app
-    restart: always
+  # 1. Core Presensi Service (Laravel Utama)
+  core-presensi:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - .:/var/www
-    depends_on:
-      - db_main
-      - db_wa
+      - ./.env:/var/www/.env
     environment:
-      - DB_HOST=db_main
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5000
+      - FACE_RECOGNITION_SERVICE_URL=http://face-recognition-service:8001
+      - DB_CONNECTION=mysql
+      - DB_HOST=host.docker.internal
       - DB_PORT=3306
       - DB_DATABASE=db_sipena
       - DB_USERNAME=root
-      - DB_PASSWORD=root
-      - DB_WA_HOST=db_wa
-      - DB_WA_PORT=3306
-      - DB_WA_DATABASE=db_wa_gateway
-      - DB_WA_USERNAME=root
-      - DB_WA_PASSWORD=root
-    networks:
-      - sipena_network
+      - DB_PASSWORD=
+    depends_on:
+      - notification-service
+      - face-recognition-service
 
-  # 2. Database Utama (db_sipena)
-  db_main:
-    image: mysql:8.0
-    container_name: sipena_db_main
-    restart: always
-    ports:
-      - "3308:3306"
-    environment:
-      MYSQL_DATABASE: db_sipena
-      MYSQL_ROOT_PASSWORD: root
-    volumes:
-      - db_main_data:/var/lib/mysql
-    networks:
-      - sipena_network
-
-  # 3. Notification Service (Node.js - WhatsApp Gateway)
-  notification_service:
-    build: ./notification-service
-    container_name: sipena_notification
-    restart: always
+  # 2. Notification Microservice (Node.js)
+  notification-service:
+    build:
+      context: ./notification-service
     ports:
       - "5000:5000"
-    depends_on:
-      - db_wa
     environment:
       - PORT=5000
-      - DB_WA_HOST=db_wa
-      - DB_WA_PORT=3306
-      - DB_WA_DATABASE=db_wa_gateway
-      - DB_WA_USERNAME=root
-      - DB_WA_PASSWORD=root
-    networks:
-      - sipena_network
+      - FONNTE_TOKEN=dC5U9f7jiRNsayHYgyQq
 
-  # 4. Database WA Gateway (db_wa_gateway)
-  db_wa:
-    image: mysql:8.0
-    container_name: sipena_db_wa
-    restart: always
+        # 3. Face Recognition Microservice (Python - YOLOv8 + Facenet)
+  face-recognition-service:
+    build:
+      context: ./face-recognition-service
     ports:
-      - "3307:3306"
+      - "8001:8001"
     environment:
-      MYSQL_DATABASE: db_wa_gateway
-      MYSQL_ROOT_PASSWORD: root
+      - FACE_MODEL=Facenet
+      - FACE_THRESHOLD=0.4
     volumes:
-      - db_wa_data:/var/lib/mysql
-    networks:
-      - sipena_network
-
-  # 5. ML Service (Di-comment sementara sampai branch face-qr di-merge)
-  # ml_service:
-  #   build: ./face-recognition-service
-  #   container_name: sipena_ml_service
-  #   restart: always
-  #   ports:
-  #     - "5001:5001"
-  #   networks:
-  #     - sipena_network
-
-networks:
-  sipena_network:
-    driver: bridge
-
-volumes:
-  db_main_data:
-  db_wa_data:
+      - ./face-recognition-service/faces:/app/faces

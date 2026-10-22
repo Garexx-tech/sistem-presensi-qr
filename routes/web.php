@@ -2,15 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\JurusanController;
 use App\Http\Controllers\Admin\KelasController;
-use App\Http\Controllers\Admin\PresensiController as AdminPresensiController;
-use App\Http\Controllers\Siswa\PresensiController as SiswaPresensiController;
+use App\Http\Controllers\Siswa\PresensiController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Auth\StudentRegistrationController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -24,13 +21,6 @@ Auth::routes([
     'reset' => false,
     'verify' => false,
 ]);
-
-Route::middleware('guest')->group(function () {
-    Route::get('/register', [StudentRegistrationController::class, 'create'])
-        ->name('register');
-    Route::post('/register', [StudentRegistrationController::class, 'store'])
-        ->name('register.store');
-});
 
 Route::middleware(['auth'])->group(function() {
     Route::get('/home', function() {
@@ -53,8 +43,6 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
     Route::get('/admin/home', [HomeController::class, 'adminHome'])->name('admin.home');
     
     Route::get('/admin/chart-data', [HomeController::class, 'getChartDataAjax'])->name('admin.chart-data');
-
-    Route::get('/admin/deteksi-dini', [AdminPresensiController::class, 'deteksiDini'])->name('admin.deteksi_dini');
 
     Route::post('admin/users/bulk-delete', [UserController::class, 'bulkDeleteByRole'])
         ->name('admin.users.bulk-delete');
@@ -118,19 +106,19 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
     Route::delete('admin/qrcode/{qrcode}', [App\Http\Controllers\Admin\QRCodeController::class, 'destroy'])
         ->name('admin.qrcode.destroy');
 
-    Route::get('admin/presensi', [AdminPresensiController::class, 'index'])
+    Route::get('admin/presensi', [App\Http\Controllers\Admin\PresensiController::class, 'index'])
         ->name('admin.presensi.index');
-    Route::get('admin/presensi/kelas/{kelas}', [AdminPresensiController::class, 'showKelas'])
+    Route::get('admin/presensi/kelas/{kelas}', [App\Http\Controllers\Admin\PresensiController::class, 'showKelas'])
         ->name('admin.presensi.kelas');
-    Route::post('admin/presensi/kelas/{kelas}/manual', [AdminPresensiController::class, 'storeManual'])
+    Route::post('admin/presensi/kelas/{kelas}/manual', [App\Http\Controllers\Admin\PresensiController::class, 'storeManual'])
         ->name('admin.presensi.kelas.manual');
-    Route::get('admin/presensi/{presensi}', [AdminPresensiController::class, 'show'])
+    Route::get('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'show'])
         ->name('admin.presensi.show');
-    Route::get('admin/presensi/{presensi}/edit', [AdminPresensiController::class, 'edit'])
+    Route::get('admin/presensi/{presensi}/edit', [App\Http\Controllers\Admin\PresensiController::class, 'edit'])
         ->name('admin.presensi.edit');
-    Route::put('admin/presensi/{presensi}', [AdminPresensiController::class, 'update'])
+    Route::put('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'update'])
         ->name('admin.presensi.update');
-    Route::delete('admin/presensi/{presensi}', [AdminPresensiController::class, 'destroy'])
+    Route::delete('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'destroy'])
         ->name('admin.presensi.destroy');
 
     Route::get('admin/export-import', [App\Http\Controllers\Admin\ExportImportController::class, 'index'])
@@ -227,19 +215,24 @@ Route::middleware(['auth', 'user-role:guru'])->group(function() {
 });
 
 // ==================== SISWA ROUTES ====================
+// ==================== SISWA ROUTES ====================
 Route::middleware(['auth', 'user-role:siswa'])->group(function() {
     Route::get('/siswa/home', [HomeController::class, 'siswaHome'])->name('siswa.home');
-    
-    // Route untuk pendaftaran, pilihan, dan keluar kelas siswa
-    Route::get('siswa/kelas/available', [HomeController::class, 'availableKelas'])->name('siswa.kelas.available');
-    Route::post('siswa/kelas/join', [HomeController::class, 'joinKelas'])->name('siswa.kelas.join');
-    Route::post('siswa/kelas/leave', [HomeController::class, 'leaveKelas'])->name('siswa.kelas.leave');
 
-    Route::get('siswa/presensi', [SiswaPresensiController::class, 'index'])
+    // --- Presensi berbasis WAJAH (menggantikan QR) ---
+    Route::get('siswa/presensi', [\App\Http\Controllers\Siswa\PresensiController::class, 'faceIndex'])
         ->name('siswa.presensi.index');
-    Route::post('siswa/presensi/validate', [SiswaPresensiController::class, 'validateQRCode'])
+    Route::post('siswa/presensi/wajah/register', [\App\Http\Controllers\Siswa\PresensiController::class, 'registerFace'])
+        ->name('siswa.presensi.wajah.register');
+    Route::post('siswa/presensi/wajah/recognize', [\App\Http\Controllers\Siswa\PresensiController::class, 'recognizeFace'])
+        ->name('siswa.presensi.wajah.recognize');
+    Route::post('siswa/presensi/wajah/submit', [\App\Http\Controllers\Siswa\PresensiController::class, 'submitFacePresensi'])
+        ->name('siswa.presensi.wajah.submit');
+
+    // Route lama QR (tidak dipakai lagi, boleh dihapus / dibiarkan)
+    Route::post('siswa/presensi/validate', [\App\Http\Controllers\Siswa\PresensiController::class, 'validateQRCode'])
         ->name('siswa.presensi.validate');
-    Route::post('siswa/presensi/submit', [SiswaPresensiController::class, 'submitPresensi'])
+    Route::post('siswa/presensi/submit', [\App\Http\Controllers\Siswa\PresensiController::class, 'submitPresensi'])
         ->name('siswa.presensi.submit');
 });
 
