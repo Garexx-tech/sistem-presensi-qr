@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\PresensiController as AdminPresensiController;
 use App\Http\Controllers\Siswa\PresensiController as SiswaPresensiController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Auth\StudentRegistrationController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -23,6 +24,13 @@ Auth::routes([
     'reset' => false,
     'verify' => false,
 ]);
+
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [StudentRegistrationController::class, 'create'])
+        ->name('register');
+    Route::post('/register', [StudentRegistrationController::class, 'store'])
+        ->name('register.store');
+});
 
 Route::middleware(['auth'])->group(function() {
     Route::get('/home', function() {
