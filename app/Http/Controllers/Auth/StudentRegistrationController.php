@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -50,8 +51,19 @@ class StudentRegistrationController extends Controller
 
     private function generateNis(): string
     {
+        $datePrefix = Carbon::now()->format('ymd');
+
+        $lastSequence = User::query()
+            ->where('nis', 'like', $datePrefix . '%')
+            ->pluck('nis')
+            ->map(fn (string $nis) => substr($nis, strlen($datePrefix)))
+            ->filter(fn (string $sequence) => $sequence !== '' && ctype_digit($sequence))
+            ->map(fn (string $sequence) => (int) $sequence)
+            ->max() ?? 0;
+
         do {
-            $nis = (string) random_int(100000000000, 999999999999);
+            $sequence = str_pad((string) ++$lastSequence, 2, '0', STR_PAD_LEFT);
+            $nis = $datePrefix . $sequence;
         } while (User::where('nis', $nis)->exists());
 
         return $nis;
