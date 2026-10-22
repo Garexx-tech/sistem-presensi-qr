@@ -230,6 +230,11 @@ Route::middleware(['auth', 'user-role:guru'])->group(function() {
 Route::middleware(['auth', 'user-role:siswa'])->group(function() {
     Route::get('/siswa/home', [HomeController::class, 'siswaHome'])->name('siswa.home');
     
+    // Route untuk pendaftaran, pilihan, dan keluar kelas siswa
+    Route::get('siswa/kelas/available', [HomeController::class, 'availableKelas'])->name('siswa.kelas.available');
+    Route::post('siswa/kelas/join', [HomeController::class, 'joinKelas'])->name('siswa.kelas.join');
+    Route::post('siswa/kelas/leave', [HomeController::class, 'leaveKelas'])->name('siswa.kelas.leave');
+
     Route::get('siswa/presensi', [SiswaPresensiController::class, 'index'])
         ->name('siswa.presensi.index');
     Route::post('siswa/presensi/validate', [SiswaPresensiController::class, 'validateQRCode'])
