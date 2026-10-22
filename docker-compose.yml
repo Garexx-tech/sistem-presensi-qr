@@ -1,12 +1,15 @@
 version: '3.8'
 
 services:
-  # 1. Aplikasi Utama Laravel
+  # 1. Aplikasi Utama Laravel (SIPENA Core)
   app:
     build: .
     container_name: sipena_app
+    restart: always
     ports:
-      - "8000:80"
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
     depends_on:
       - db_main
     environment:
@@ -15,11 +18,14 @@ services:
       - DB_DATABASE=db_sipena
       - DB_USERNAME=root
       - DB_PASSWORD=root
+    networks:
+      - sipena_network
 
   # 2. Database Utama (db_sipena)
   db_main:
     image: mysql:8.0
     container_name: sipena_db_main
+    restart: always
     ports:
       - "3308:3306"
     environment:
@@ -27,11 +33,14 @@ services:
       MYSQL_ROOT_PASSWORD: root
     volumes:
       - db_main_data:/var/lib/mysql
-      
-  # 3. Notification Service (Node.js)
+    networks:
+      - sipena_network
+
+  # 3. Notification Service (Node.js - WhatsApp Gateway)
   notification_service:
     build: ./notification-service
     container_name: sipena_notification
+    restart: always
     ports:
       - "5000:5000"
     depends_on:
@@ -43,11 +52,14 @@ services:
       - DB_WA_DATABASE=db_wa_gateway
       - DB_WA_USERNAME=root
       - DB_WA_PASSWORD=root
+    networks:
+      - sipena_network
 
   # 4. Database WA Gateway (db_wa_gateway)
   db_wa:
     image: mysql:8.0
     container_name: sipena_db_wa
+    restart: always
     ports:
       - "3307:3306"
     environment:
@@ -55,13 +67,22 @@ services:
       MYSQL_ROOT_PASSWORD: root
     volumes:
       - db_wa_data:/var/lib/mysql
+    networks:
+      - sipena_network
 
-  # 5. ML Mock Service (API Tiruan Face ID)
-  ml_service:
-    image: python:3.9-slim
-    container_name: sipena_ml_service
-    ports:
-      - "5001:5001"
+  # 5. ML Service (Di-comment sementara sampai branch face-qr di-merge)
+  # ml_service:
+  #   build: ./face-recognition-service
+  #   container_name: sipena_ml_service
+  #   restart: always
+  #   ports:
+  #     - "5001:5001"
+  #   networks:
+  #     - sipena_network
+
+networks:
+  sipena_network:
+    driver: bridge
 
 volumes:
   db_main_data:
