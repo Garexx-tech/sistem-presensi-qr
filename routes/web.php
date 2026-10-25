@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\JurusanController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Siswa\PresensiController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Auth\StudentRegistrationController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -21,6 +22,10 @@ Auth::routes([
     'reset' => false,
     'verify' => false,
 ]);
+
+// Pendaftaran akun siswa baru (self-registration)
+Route::get('register', [StudentRegistrationController::class, 'create'])->name('register');
+Route::post('register', [StudentRegistrationController::class, 'store'])->name('register.store');
 
 Route::middleware(['auth'])->group(function() {
     Route::get('/home', function() {
@@ -120,6 +125,15 @@ Route::middleware(['auth', 'user-role:admin'])->group(function() {
         ->name('admin.presensi.update');
     Route::delete('admin/presensi/{presensi}', [App\Http\Controllers\Admin\PresensiController::class, 'destroy'])
         ->name('admin.presensi.destroy');
+
+    Route::get('admin/deteksi-dini', [App\Http\Controllers\Admin\DeteksiDiniController::class, 'index'])
+        ->name('admin.deteksi-dini.index');
+
+    Route::post('admin/deteksi-dini/kirim-wa/{siswa}', [App\Http\Controllers\Admin\DeteksiDiniController::class, 'kirimWa'])
+        ->name('admin.deteksi-dini.kirim-wa');
+
+    Route::get('admin/deteksi-dini/export-csv', [App\Http\Controllers\Admin\DeteksiDiniController::class, 'exportCsv'])
+        ->name('admin.deteksi-dini.export-csv');
 
     Route::get('admin/export-import', [App\Http\Controllers\Admin\ExportImportController::class, 'index'])
         ->name('admin.export-import.index');

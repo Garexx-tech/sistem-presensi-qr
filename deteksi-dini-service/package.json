@@ -1,0 +1,16 @@
+{
+  "name": "deteksi-dini-service",
+  "version": "1.0.0",
+  "description": "Microservice deteksi dini presensi + scheduler WA bulanan",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0",
+    "node-cron": "^3.0.3"
+  }
+}

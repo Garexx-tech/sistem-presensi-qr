@@ -1,4 +1,4 @@
-﻿<!-- Sidebar -->
+<!-- Sidebar -->
 <nav class="navbar-vertical navbar">
     <div class="nav-scroller">
         <!-- Brand logo -->
@@ -80,6 +80,13 @@
                 <a class="nav-link" href="{{ route('admin.qrcode.index') }}">
                     <i data-feather="QR code" class="bi bi-qr-code icon-xs me-2"></i>
                     Buat Sesi Presensi
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('admin.deteksi-dini.index') }}">
+                    <i data-feather="Alert triangle" class="bi bi-exclamation-triangle icon-xs me-2"></i>
+                    Deteksi Dini Presensi
                 </a>
             </li>
             

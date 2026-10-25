@@ -14,7 +14,7 @@ class FonnteService
     {
         // Mengambil URL Notification Service dari config/env (default ke container notification-service:5000)
         $this->notificationServiceUrl = config('services.notification.url') 
-            ?: env('NOTIFICATION_SERVICE_URL', 'http://notification-service:5000');
+            ?: env('NOTIFICATION_SERVICE_URL', 'http://notification_service:5000');
     }
 
     public function isEnabled(): bool
@@ -42,11 +42,15 @@ class FonnteService
         try {
             $phoneNumber = $this->normalizePhoneNumber($phoneNumber);
 
+            // Ambil device untuk API key Fonnte jika belum ditentukan
+            $device = $device ?: $this->getNextDevice();
+
             // Memanggil Notification Service (Microservice) via REST API
             $response = Http::timeout(15)
                 ->post($this->notificationServiceUrl . '/api/send-presence-notification', [
                     'phone' => $phoneNumber,
                     'message' => $message,
+                    'api_key' => $device?->api_key,
                 ]);
 
             if ($response->successful()) {

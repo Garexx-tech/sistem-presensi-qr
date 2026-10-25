@@ -30,8 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             nisGroup.style.display = 'block';
             kelasGroup.style.display = 'block';
             parentPhoneGroup.style.display = 'block';
-            emailGroup.style.display = 'none';
-            emailInput.value = '';
+            emailGroup.style.display = 'block';
             emailInput.removeAttribute('required');
             nisInput.setAttribute('required', 'required');
         } else {
@@ -62,8 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
             nisGroup.style.display = 'block';
             kelasGroup.style.display = 'block';
             parentPhoneGroup.style.display = 'block';
-            emailGroup.style.display = 'none';
-            emailInput.value = '';
+            emailGroup.style.display = 'block';
             emailInput.removeAttribute('required');
             nisInput.setAttribute('required', 'required');
         } else {
@@ -233,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (user.role == 2) {
                         document.getElementById('edit_nis').value = user.nis || '';
-                        document.getElementById('edit_email').value = '';
+                        document.getElementById('edit_email').value = user.email || '';
                     } else {
                         document.getElementById('edit_email').value = user.email || '';
                         document.getElementById('edit_nis').value = '';

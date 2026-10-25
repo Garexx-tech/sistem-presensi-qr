@@ -62,7 +62,9 @@ class QRCodeController extends Controller
         ]);
 
         try {
-            $oldSessions = PresensiSession::where('kelas_id', $validated['kelas_id'])->get();
+            $oldSessions = PresensiSession::where('kelas_id', $validated['kelas_id'])
+                ->whereDate('tanggal', $validated['tanggal'])
+                ->get();
             
             
             foreach ($oldSessions as $oldSession) {

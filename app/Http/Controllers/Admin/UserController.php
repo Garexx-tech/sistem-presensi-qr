@@ -67,10 +67,13 @@ class UserController extends Controller
                 $rules['nis'] = 'required|string|max:20|unique:users,nis';
                 $rules['kelas_id'] = 'nullable|exists:kelas,id';
                 $rules['parent_phone'] = 'nullable|string|max:15';
+                $rules['email'] = 'nullable|email|max:255|unique:users,email';
                 
                 $messages['nis.required'] = 'NIS harus diisi untuk siswa';
                 $messages['nis.unique'] = 'NIS sudah terdaftar';
                 $messages['kelas_id.exists'] = 'Kelas tidak valid';
+                $messages['email.email'] = 'Format email tidak valid';
+                $messages['email.unique'] = 'Email sudah terdaftar';
             } else { 
                 $rules['email'] = 'required|email|max:255|unique:users,email';
                 
@@ -96,7 +99,7 @@ class UserController extends Controller
                     'role' => $request->role, 
                     'status' => $request->status,
                     'password' => Hash::make($request->password),
-                    'email' => $request->role != '2' ? $request->email : null,
+                    'email' => $request->email ?: null,
                     'nis' => $request->role == '2' ? $request->nis : null,
                     'kelas_id' => $request->role == '2' ? $request->kelas_id : null,
                     'parent_phone' => $request->role == '2' ? $request->parent_phone : null,
@@ -186,9 +189,12 @@ class UserController extends Controller
                 $rules['nis'] = 'required|string|max:20|unique:users,nis,' . $id;
                 $rules['kelas_id'] = 'nullable|exists:kelas,id';
                 $rules['parent_phone'] = 'nullable|string|max:15';
+                $rules['email'] = 'nullable|email|max:255|unique:users,email,' . $id;
                 
                 $messages['nis.required'] = 'NIS harus diisi untuk siswa';
                 $messages['nis.unique'] = 'NIS sudah terdaftar';
+                $messages['email.email'] = 'Format email tidak valid';
+                $messages['email.unique'] = 'Email sudah terdaftar';
             } else { 
                 $rules['email'] = 'required|email|max:255|unique:users,email,' . $id;
                 
@@ -213,7 +219,7 @@ class UserController extends Controller
                     'name' => $request->name,
                     'role' => $request->role, 
                     'status' => $request->status,
-                    'email' => $request->role != '2' ? $request->email : null,
+                    'email' => $request->filled('email') ? $request->email : $user->email,
                     'nis' => $request->role == '2' ? $request->nis : null,
                     'kelas_id' => $request->role == '2' ? $request->kelas_id : null,
                     'parent_phone' => $request->role == '2' ? $request->parent_phone : null,

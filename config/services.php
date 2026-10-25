@@ -32,7 +32,7 @@ return [
     ],
 
     'notification' => [
-        'url' => env('NOTIFICATION_SERVICE_URL', 'http://notification-service:5000'),
+        'url' => env('NOTIFICATION_SERVICE_URL', 'http://notification_service:5000'),
     ],
 
         'face_recognition' => [
